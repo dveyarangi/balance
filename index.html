@@ -92,7 +92,26 @@ body {
 		</style>
 		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
 <link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
-<script>if (matchMedia('(pointer: coarse)').matches) addEventListener('pointerdown', function () { var page = document.documentElement; if (page.requestFullscreen) page.requestFullscreen().then(function () { return screen.orientation.lock('landscape'); }).catch(function () {}); }, { once: true, capture: true });</script>
+<script>
+// The resolution the menu picks: the engine sizes its canvas by devicePixelRatio, so the page
+// answers with the chosen ratio. Fast is CSS pixels, Sharp the device's own, Balanced between.
+(function () {
+	var device = Object.getOwnPropertyDescriptor(window, 'devicePixelRatio');
+	function real() { return (device && device.get ? device.get.call(window) : 1) || 1; }
+	var ratios = { Fast: function () { return 1; }, Balanced: function () { return Math.min(real(), 2); }, Sharp: real };
+	var chosen = null;
+	try { chosen = localStorage.getItem('resolution'); } catch (e) {}
+	window.renderResolution = chosen in ratios ? chosen : 'Balanced';
+	window.setRenderResolution = function (name) {
+		if (!(name in ratios)) return;
+		window.renderResolution = name;
+		try { localStorage.setItem('resolution', name); } catch (e) {}
+	};
+	Object.defineProperty(window, 'devicePixelRatio', { configurable: true, get: function () { return ratios[window.renderResolution](); } });
+})();
+// A browser locks the screen to landscape only in fullscreen and from a touch.
+if (matchMedia('(pointer: coarse)').matches) addEventListener('pointerdown', function () { var page = document.documentElement; if (page.requestFullscreen) page.requestFullscreen().then(function () { return screen.orientation.lock('landscape'); }).catch(function () {}); }, { once: true, capture: true });
+</script>
 	</head>
 	<body>
 		<canvas id="canvas">
@@ -111,7 +130,7 @@ body {
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":135740,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":139440,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 GODOT_CONFIG.mainPack = 'index.pck?v=' + Date.now();
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
