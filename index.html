@@ -115,12 +115,22 @@ if (matchMedia('(pointer: coarse)').matches) addEventListener('pointerdown', fun
 // Threads need the page cross-origin isolated, which GitHub Pages cannot say, so the service worker
 // says it. The engine's own page reloads before the new worker takes control and then stops, so once
 // the worker is active an uncontrolled page reloads itself, once a visit.
+// Where no worker can run, as in a private window, or it ran and the page is still not isolated, the
+// game cannot start, and the page says so rather than stay black.
+function cannotStart() {
+	var note = document.createElement('div');
+	note.textContent = 'The game cannot start in this window. Open it in a regular, not private, browser window.';
+	note.style.cssText = 'position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;padding:16px;'
+			+ 'text-align:center;background:#000;color:#ccc;font:16px/1.5 sans-serif';
+	if (document.body) document.body.appendChild(note);
+	else addEventListener('DOMContentLoaded', function () { document.body.appendChild(note); });
+}
 if (!crossOriginIsolated && window.isSecureContext && 'serviceWorker' in navigator) {
 	navigator.serviceWorker.register('index.service.worker.js').then(function () { return navigator.serviceWorker.ready; }).then(function () {
-		if (sessionStorage.getItem('isolating')) return;
+		if (sessionStorage.getItem('isolating')) return cannotStart();
 		sessionStorage.setItem('isolating', '1');
 		location.reload();
-	}).catch(function () {});
+	}).catch(cannotStart);
 } else if (crossOriginIsolated) {
 	try { sessionStorage.removeItem('isolating'); } catch (e) {}
 }
