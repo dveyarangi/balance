@@ -92,6 +92,7 @@ body {
 		</style>
 		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
 <link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
+<link rel="manifest" href="index.manifest.json">
 <script>
 // The resolution the menu picks: the engine sizes its canvas by devicePixelRatio, so the page
 // answers with the chosen ratio. Fast is CSS pixels, Sharp the device's own, Balanced between.
@@ -111,6 +112,29 @@ body {
 })();
 // A browser locks the screen to landscape only in fullscreen and from a touch.
 if (matchMedia('(pointer: coarse)').matches) addEventListener('pointerdown', function () { var page = document.documentElement; if (page.requestFullscreen) page.requestFullscreen().then(function () { return screen.orientation.lock('landscape'); }).catch(function () {}); }, { once: true, capture: true });
+// Threads need the page cross-origin isolated, which GitHub Pages cannot say, so the service worker
+// says it. The engine's own page reloads before the new worker takes control and then stops, so once
+// the worker is active an uncontrolled page reloads itself, once a visit.
+if (!crossOriginIsolated && window.isSecureContext && 'serviceWorker' in navigator) {
+	navigator.serviceWorker.register('index.service.worker.js').then(function () { return navigator.serviceWorker.ready; }).then(function () {
+		if (sessionStorage.getItem('isolating')) return;
+		sessionStorage.setItem('isolating', '1');
+		location.reload();
+	}).catch(function () {});
+} else if (crossOriginIsolated) {
+	try { sessionStorage.removeItem('isolating'); } catch (e) {}
+}
+// A new build's worker waits while the old one controls the page, which goes on serving the old game
+// from its cache, so the page tells the new one to take over, and that reloads the page onto it.
+if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistration().then(function (registration) {
+	if (!registration) return;
+	function handOver(worker) { if (worker && navigator.serviceWorker.controller) worker.postMessage('update'); }
+	handOver(registration.waiting);
+	registration.addEventListener('updatefound', function () {
+		var worker = registration.installing;
+		worker.addEventListener('statechange', function () { if (worker.state === 'installed') handOver(worker); });
+	});
+}).catch(function () {});
 </script>
 	</head>
 	<body>
@@ -130,9 +154,9 @@ if (matchMedia('(pointer: coarse)').matches) addEventListener('pointerdown', fun
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":229064,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":229432,"index.wasm":38820072},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
 GODOT_CONFIG.mainPack = 'index.pck?v=' + Date.now();
-const GODOT_THREADS_ENABLED = false;
+const GODOT_THREADS_ENABLED = true;
 const engine = new Engine(GODOT_CONFIG);
 
 (function () {
