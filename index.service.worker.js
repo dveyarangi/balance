@@ -4,7 +4,7 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1794432106|4622708';
+const CACHE_VERSION = '1794442918|5016434';
 /** @type {string} */
 const CACHE_PREFIX = 'Game Delta-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
